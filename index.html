@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Vokabeltrainer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        #result { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Vokabeltrainer</h1>
+    <!-- Passwortbereich entfernt -->
+    <div id="mainContent">
+        <p>Gib eine deutsche Vokabel ein und ihre englische Übersetzung:</p>
+        <form id="vocabForm">
+            <input type="text" id="deutsch" placeholder="Deutsch" required>
+            <input type="text" id="englisch" placeholder="Englisch" required>
+            <button type="submit">Hinzufügen</button>
+        </form>
+        <h2>
+            Vokabeln (<span id="vocabCount">0</span>)
+            <button id="toggleVocab" type="button">Lösungen anzeigen</button>
+        </h2>
+        <div id="hiddenVocab" style="display:none;">
+            <ul id="vocabList"></ul>
+        </div>
+        <div id="vocabPwBox" style="display:none;">
+            <input type="password" id="vocabPw" placeholder="Passwort">
+            <button id="vocabPwBtn" type="button">Bestätigen</button>
+            <span id="vocabPwMsg" style="color:red;"></span>
+        </div>
+
+        <h2>
+            Vokabel-Ordner (fest)
+            <button id="toggleFixedVocab" type="button">Lösungen anzeigen</button>
+        </h2>
+        <div id="hiddenFixedVocab" style="display:none;">
+            <ul id="fixedVocabList"></ul>
+        </div>
+        <div id="fixedVocabPwBox" style="display:none;">
+            <input type="password" id="fixedVocabPw" placeholder="Passwort">
+            <button id="fixedVocabPwBtn" type="button">Bestätigen</button>
+            <span id="fixedVocabPwMsg" style="color:red;"></span>
+        </div>
+
+        <h2>Teste dich!</h2>
+        <button onclick="askVocab()">Vokabel abfragen</button>
+        <div id="question"></div>
+        <input type="text" id="answer" placeholder="Englische Übersetzung">
+        <button onclick="checkAnswer()">Antwort prüfen</button>
+        <div id="result"></div>
+        <div id="progress">Geschafft: <span id="doneCount">0</span></div>
+    </div>
+    <script>
+        // Passwortschutz entfernt
+        window.showSolutions = false;
+        const solutionPassword = "geheim"; // Passwort hier ändern
+
+        const vocab = [];
+        let done = 0;
+
+        document.getElementById('vocabForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const de = document.getElementById('deutsch').value.trim();
+            const en = document.getElementById('englisch').value.trim();
+            if(de && en) {
+                vocab.push({de, en});
+                updateList();
+                document.getElementById('deutsch').value = '';
+                document.getElementById('englisch').value = '';
+            }
+        });
+
+        function updateList() {
+            const list = document.getElementById('vocabList');
+            list.innerHTML = '';
+            vocab.forEach(v => {
+                const li = document.createElement('li');
+                li.textContent = v.de;
+                if (window.showSolutions) {
+                    li.textContent += ` - ${v.en}`;
+                }
+                list.appendChild(li);
+            });
+            document.getElementById('vocabCount').textContent = vocab.length;
+        }
+
+        let currentVocab = null;
+
+        function askVocab() {
+            // Kombiniere beide Vokabellisten
+            const allVocab = vocab.concat(fixedVocab);
+            if(allVocab.length === 0) {
+                document.getElementById('question').textContent = "Keine Vokabeln vorhanden!";
+                return;
+            }
+            currentVocab = allVocab[Math.floor(Math.random() * allVocab.length)];
+            document.getElementById('question').textContent = `Was heißt "${currentVocab.de}" auf Englisch?`;
+            document.getElementById('result').textContent = '';
+            document.getElementById('answer').value = '';
+        }
+
+        function checkAnswer() {
+            if(!currentVocab) return;
+            const userAnswer = document.getElementById('answer').value.trim().toLowerCase();
+            if(userAnswer === currentVocab.en.toLowerCase()) {
+                document.getElementById('result').textContent = "Richtig!";
+                done++;
+                document.getElementById('doneCount').textContent = done;
+            } else {
+                document.getElementById('result').textContent = `Falsch! Richtig wäre: ${currentVocab.en}`;
+            }
+        }
+
+        // Feste Vokabeln
+        const fixedVocab = [
+            {de: "Haus", en: "house"},
+            {de: "Baum", en: "tree"},
+            {de: "Katze", en: "cat"},
+            {de: "Hund", en: "dog"},
+            {de: "Buch", en: "book"}
+        ];
+
+        // Zeige feste Vokabeln
+        function showFixedVocab() {
+            const list = document.getElementById('fixedVocabList');
+            list.innerHTML = '';
+            fixedVocab.forEach(v => {
+                const li = document.createElement('li');
+                li.textContent = v.de;
+                if (window.showSolutions) {
+                    li.textContent += ` - ${v.en}`;
+                }
+                list.appendChild(li);
+            });
+        }
+        showFixedVocab();
+
+        // Bereich ein-/ausblenden für eigene Vokabeln mit Passwort
+        document.getElementById('toggleVocab').onclick = function() {
+            if (!window.showSolutions) {
+                document.getElementById('vocabPwBox').style.display = "block";
+            } else {
+                document.getElementById('hiddenVocab').style.display = "none";
+                window.showSolutions = false;
+                this.textContent = "Lösungen anzeigen";
+                updateList();
+                document.getElementById('vocabPwBox').style.display = "none";
+            }
+        };
+        document.getElementById('vocabPwBtn').onclick = function() {
+            const pw = document.getElementById('vocabPw').value;
+            if (pw === solutionPassword) {
+                window.showSolutions = true;
+                document.getElementById('hiddenVocab').style.display = "block";
+                document.getElementById('toggleVocab').textContent = "Lösungen verstecken";
+                updateList();
+                document.getElementById('vocabPwBox').style.display = "none";
+                document.getElementById('vocabPwMsg').textContent = "";
+                document.getElementById('vocabPw').value = "";
+            } else {
+                document.getElementById('vocabPwMsg').textContent = "Falsches Passwort!";
+            }
+        };
+
+        // Bereich ein-/ausblenden für feste Vokabeln mit Passwort
+        document.getElementById('toggleFixedVocab').onclick = function() {
+            if (!window.showSolutions) {
+                document.getElementById('fixedVocabPwBox').style.display = "block";
+            } else {
+                document.getElementById('hiddenFixedVocab').style.display = "none";
+                window.showSolutions = false;
+                this.textContent = "Lösungen anzeigen";
+                showFixedVocab();
+                document.getElementById('fixedVocabPwBox').style.display = "none";
+            }
+        };
+        document.getElementById('fixedVocabPwBtn').onclick = function() {
+            const pw = document.getElementById('fixedVocabPw').value;
+            if (pw === solutionPassword) {
+                window.showSolutions = true;
+                document.getElementById('hiddenFixedVocab').style.display = "block";
+                document.getElementById('toggleFixedVocab').textContent = "Lösungen verstecken";
+                showFixedVocab();
+                document.getElementById('fixedVocabPwBox').style.display = "none";
+                document.getElementById('fixedVocabPwMsg').textContent = "";
+                document.getElementById('fixedVocabPw').value = "";
+            } else {
+                document.getElementById('fixedVocabPwMsg').textContent = "Falsches Passwort!";
+            }
+        };
+    </script>
+</body>
+</html>
